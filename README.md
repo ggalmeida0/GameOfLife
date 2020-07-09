@@ -6,6 +6,6 @@
 - numpy https://numpy.org/install/
 
 # Controls:
-## Left click: place and remove a live cell
-## Right click: step one generation
-## Space bar: reset the board
+- Left click: place and remove a live cell
+- Right click: step one generation
+- Space bar: reset the board
