@@ -1,4 +1,4 @@
-# Game of Life (Golly)
+# Game of Life
 
 ## Dependencies:
 - python 3.7
