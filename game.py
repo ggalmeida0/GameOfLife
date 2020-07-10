@@ -5,12 +5,14 @@ from copy import copy, deepcopy
 
 
 class Game:
-    GRID_SIZE = 16
 
     @classmethod
-    def start(cls):
+    def start(cls,grid_size):
+        cls.GRID_SIZE = grid_size
+        cls.WINDOW_SIZE = 1024
+        cls.CELL_SIZE = cls.WINDOW_SIZE // cls.GRID_SIZE
         pygame.init()
-        cls.screen = pygame.display.set_mode((1024,1024))
+        cls.screen = pygame.display.set_mode((cls.WINDOW_SIZE,cls.WINDOW_SIZE))
         pygame.display.set_caption("Game of Life")
         cls.grid = np.array([[None] * cls.GRID_SIZE]*cls.GRID_SIZE)
         cls.render_cells()
@@ -21,25 +23,27 @@ class Game:
         current_position = np.array([0,0])
         for i in range(cls.grid.shape[0]):
             for j in range(cls.grid[i].shape[0]):
-                cls.grid[i,j] = CellularAutomaton(cls.screen,tuple(current_position))
-                current_position += [0,64]
+                cls.grid[i,j] = CellularAutomaton(cls.screen,tuple(current_position), (cls.CELL_SIZE,cls.CELL_SIZE))
+                current_position += [0,cls.CELL_SIZE]
             current_position[1] = 0
-            current_position += [64,0]
+            current_position += [cls.CELL_SIZE,0]
         cls.update_neighbors()
         
 
     
     @classmethod
     def handle_click(cls,coordinates):
-        clicked_coord = (coordinates[0] // 64,coordinates[1] //64)
+        clicked_coord = (coordinates[0] // cls.CELL_SIZE,coordinates[1] //cls.CELL_SIZE)
+        if clicked_coord[0] > cls.grid.shape[0] or clicked_coord[1] > cls.grid.shape[0]:
+            return
         clicked_cell = cls.grid[clicked_coord[0],clicked_coord[1]]
         if clicked_cell.state == 0:
             pygame.draw.rect(cls.screen,(255,0,0),clicked_cell.get_body())
-            pygame.draw.rect(cls.screen,(0,0,0),clicked_cell.get_body(),2)
+            pygame.draw.rect(cls.screen,(0,0,0),clicked_cell.get_body(),1)
             clicked_cell.state = 1
         elif clicked_cell.state == 1:
             pygame.draw.rect(cls.screen,(255,255,255),clicked_cell.get_body())
-            pygame.draw.rect(cls.screen,(0,0,0),clicked_cell.get_body(),2)
+            pygame.draw.rect(cls.screen,(0,0,0),clicked_cell.get_body(),1)
             clicked_cell.state = 0
 
     @classmethod
@@ -60,17 +64,17 @@ class Game:
                 elif (current_cell.state == 0 and alive_neighbors == 3):    
                     current_cell.state = 1
                     pygame.draw.rect(cls.screen,(255,0,0),current_cell.get_body())
-                    pygame.draw.rect(cls.screen,(0,0,0),current_cell.get_body(),2)
+                    pygame.draw.rect(cls.screen,(0,0,0),current_cell.get_body(),1)
                 # 3. Any live cell with fewer than two live neighbours dies, as if by underpopulation
                 elif(current_cell.state == 1 and alive_neighbors < 2):
                     current_cell.state = 0
                     pygame.draw.rect(cls.screen,(255,255,255),current_cell.get_body())
-                    pygame.draw.rect(cls.screen,(0,0,0),current_cell.get_body(),2)
+                    pygame.draw.rect(cls.screen,(0,0,0),current_cell.get_body(),1)
                 # 4. Any live cell with more than three live neighbours dies, as if by overpopulation.
                 elif(current_cell.state == 1 and alive_neighbors > 3):
                     current_cell.state = 0
                     pygame.draw.rect(cls.screen,(255,255,255),current_cell.get_body())
-                    pygame.draw.rect(cls.screen,(0,0,0),current_cell.get_body(),2)
+                    pygame.draw.rect(cls.screen,(0,0,0),current_cell.get_body(),1)
         cls.update_neighbors()
                 
  
@@ -80,7 +84,7 @@ class Game:
             for j in range(cls.grid[i].shape[0]):
                 cls.grid[i][j].state = 0
                 pygame.draw.rect(cls.screen,(255,255,255),cls.grid[i][j].get_body())
-                pygame.draw.rect(cls.screen,(0,0,0),cls.grid[i][j].get_body(),2)
+                pygame.draw.rect(cls.screen,(0,0,0),cls.grid[i][j].get_body(),1)
 
     @classmethod
     def copy_configuration(cls):
@@ -106,4 +110,129 @@ class Game:
                     else:
                         neighbors.append(cls.grid[coordinate[0]][coordinate[1]])
                 cls.grid[i][j].set_neighbors(np.array(neighbors))
+
+    @classmethod
+    def make_gospel_gun(cls,initial_coord):
+        x = initial_coord[0]
+        y = initial_coord[1]
+        cls.grid[x,y].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x,y].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x,y].get_body(),1)
+        cls.grid[x+1,y].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+1,y].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+1,y].get_body(),1)
+        cls.grid[x+1,y+1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+1,y+1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+1,y+1].get_body(),1)
+        cls.grid[x,y+1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x,y+1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x,y+1].get_body(),1)
+        cls.grid[x+10,y].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+10,y].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+10,y].get_body(),1)
+        cls.grid[x+10,y+1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+10,y+1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+10,y+1].get_body(),1)
+        cls.grid[x+10,y+2].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+10,y+2].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+10,y+2].get_body(),1)
+        cls.grid[x+11,y-1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+11,y-1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+11,y-1].get_body(),1)
+        cls.grid[x+11,y+3].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+11,y+3].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+11,y+3].get_body(),1)
+        cls.grid[x+12,y+4].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+12,y+4].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+12,y+4].get_body(),1)
+        cls.grid[x+13,y+4].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+13,y+4].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+13,y+4].get_body(),1)
+
+        cls.grid[x+12,y-2].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+12,y-2].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+12,y-2].get_body(),1)
+        cls.grid[x+13,y-2].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+13,y-2].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+13,y-2].get_body(),1)
+
+        cls.grid[x+14,y+1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+14,y+1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+14,y+1].get_body(),1)
+        cls.grid[x+15,y-1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+15,y-1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+15,y-1].get_body(),1)
+        cls.grid[x+15,y+3].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+15,y+3].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+15,y+3].get_body(),1)
+        cls.grid[x+16,y+2].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+16,y+2].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+16,y+2].get_body(),1)
+        cls.grid[x+16,y+1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+16,y+1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+16,y+1].get_body(),1)
+        cls.grid[x+16,y].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+16,y].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+16,y].get_body(),1)
+        cls.grid[x+17,y+1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+17,y+1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+17,y+1].get_body(),1)
+        cls.grid[x+20,y].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+20,y].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+20,y].get_body(),1)
+        cls.grid[x+20,y-1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+20,y-1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+20,y-1].get_body(),1)
+        cls.grid[x+20,y-2].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+20,y-2].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+20,y-2].get_body(),1)
+        cls.grid[x+21,y].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+21,y].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+21,y].get_body(),1)
+        cls.grid[x+21,y-1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+21,y-1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+21,y-1].get_body(),1)
+        cls.grid[x+21,y-2].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+21,y-2].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+21,y-2].get_body(),1)
+        cls.grid[x+22,y-3].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+22,y-3].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+22,y-3].get_body(),1)
+        cls.grid[x+22,y+1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+22,y+1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+22,y+1].get_body(),1)
+        cls.grid[x+24,y+1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y+1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y+1].get_body(),1)
+        cls.grid[x+24,y+2].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y+2].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y+2].get_body(),1)
+        cls.grid[x+24,y-3].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y-3].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y-3].get_body(),1)
+        cls.grid[x+24,y-4].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y-4].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y-4].get_body(),1)
+        cls.grid[x+34,y-2].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+34,y-2].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+34,y-2].get_body(),1)
+        cls.grid[x+34,y-1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+34,y-1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+34,y-1].get_body(),1)
+        cls.grid[x+35,y-1].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+35,y-1].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+35,y-1].get_body(),1)
+        cls.grid[x+35,y-2].state = 1
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+35,y-2].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+35,y-2].get_body(),1)
         
+        
+
+
+        
+    
+    # It assumes the grid is at least 128x128
+    @classmethod
+    def setup_NOT(cls):
+        cls.make_gospel_gun((6,6))
+
