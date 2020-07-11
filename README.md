@@ -12,5 +12,5 @@
 - Enter: play the game continuously, press again to pause
 
 # How to run:
-in the terminal run the command
+In the terminal run the command
 `python3 main.py`
