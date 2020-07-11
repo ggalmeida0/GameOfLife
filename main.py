@@ -22,7 +22,7 @@ if __name__ == "__main__":
             print("load        It allows you to load board configurations. This program already comes with a couple board configurations on the saves folder")
             print("exit        It will exit this program")
         if(command == "load"):
-            filename = input("Enter filename: ")
+            filename = input("Enter filename (Type '.npy' after the filename): ")
             Game.load(filename)
         if(command == "playground" or command == "load"):
             print("\nControls:\n-Left click: place and remove a live cell\n-Right click: step one generation\n-Space bar: reset the board\n-Enter: will play the simulation continuously click again to pause")
@@ -60,8 +60,3 @@ if __name__ == "__main__":
                 pygame.display.update()
         elif(command == "exit"):
             exit()
-    
-    
-    
-    
-    

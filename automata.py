@@ -20,6 +20,7 @@ class CellularAutomaton:
     def get_body(self):
         return self._body
     
+    # It advances the state of the automaton 1 generation
     def step(self):
         alive_neighbors = 0
         for neighbor in self._neighbors:

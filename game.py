@@ -7,6 +7,7 @@ import sys
 
 class Game:
 
+    # It will setup pygame and board configurations for the game to start
     @classmethod
     def start(cls,grid_size):
         cls.GRID_SIZE = grid_size
@@ -19,6 +20,7 @@ class Game:
         cls.render_cells()
         cls.lives = []
     
+    # It will load the board configuration of a previously saved board, when prompted is needed to type the .npy extension along with the filename
     @classmethod
     def load(cls,filename):
        cls.grid = np.load("saves/"+filename,allow_pickle=True)
@@ -32,6 +34,7 @@ class Game:
        cls.load_live_cells()
        cls.display_cells()
 
+    # It will save the current state of the board and save it into a .npy file
     @classmethod
     def save(cls):
         name = input("Input file name: ")
@@ -42,6 +45,7 @@ class Game:
         np.save("saves/"+name,cls.grid)
         print("File Saved")
 
+    # It will display the the state of the board into the screen, used in conjuction with load in order to display custom boards
     @classmethod
     def display_cells(cls):
         for col in cls.grid:
@@ -53,6 +57,7 @@ class Game:
                     pygame.draw.rect(cls.screen,(255,255,255),cell.get_body())
                     pygame.draw.rect(cls.screen,(0,0,0),cell.get_body(),1)
 
+    # It will go through the list of alive cell and update their state on the grid, used in conjuction with load
     @classmethod
     def load_live_cells(cls):
         for i in range(cls.grid.shape[0]):
@@ -60,7 +65,7 @@ class Game:
                 if cls.grid[i,j].state == 1:
                   cls.lives.append(cls.grid[i,j])
 
-
+    # It will fill the board with dead cells and render them, only call when the game starts
     @classmethod
     def render_cells(cls):
         current_position = np.array([0,0])
@@ -73,7 +78,7 @@ class Game:
         cls.update_neighbors()
         
 
-    
+    # Change the state of the cell at the provided coordinate, if state was 1 it sets to 0 and vice verse
     @classmethod
     def handle_click(cls,coordinates):
         clicked_coord = (coordinates[0] // cls.CELL_SIZE,coordinates[1] //cls.CELL_SIZE)
@@ -90,7 +95,8 @@ class Game:
             pygame.draw.rect(cls.screen,(0,0,0),clicked_cell.get_body(),1)
             clicked_cell.state = 0
             cls.lives.remove(clicked_cell)
-
+    
+    # Advances the state of the board one generation
     @classmethod
     def step(cls):
         # First put live cells and its neighbors inside a list for evaluation
@@ -116,7 +122,7 @@ class Game:
                 pygame.draw.rect(cls.screen,(255,255,255),evaluated_cells[i].get_body())
                 pygame.draw.rect(cls.screen,(0,0,0),evaluated_cells[i].get_body(),1)
         
-
+    # Goes through the entire grid and sets the state of every cell to dead
     @classmethod
     def reset_cells(cls):
         for i in range(cls.grid.shape[0]):
@@ -125,6 +131,7 @@ class Game:
                 pygame.draw.rect(cls.screen,(255,255,255),cls.grid[i][j].get_body())
                 pygame.draw.rect(cls.screen,(0,0,0),cls.grid[i][j].get_body(),1)
 
+    # Goes through the entire grid and assign the neighbors for each cell
     @classmethod
     def update_neighbors(cls):
         for i in range(cls.grid.shape[0]):
@@ -141,6 +148,7 @@ class Game:
                 cls.grid[i][j].set_neighbors(np.array(neighbors))
 
     # This method will make a gospel glider gun at the coord, it assumes the grid is big enough for it
+    # this method draws the gun square by square so it's not very readable
     @classmethod
     def _make_gospel_gun(cls,initial_coord,fire_right=True):
         x = initial_coord[0]
@@ -466,19 +474,5 @@ class Game:
             y_change = y_change
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
-        
-        
-
-
-        
-    
-    # It assumes the grid is at least 128x128
-    @classmethod
-    def setup_NOT(cls):
-        cls._make_gospel_gun((1,30))
-        cls._make_gospel_gun((127,28),fire_right=False)
-        cls._make_gospel_gun((45,4))
-        cls._make_gospel_gun((5,4))
-
 
 
