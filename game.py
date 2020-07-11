@@ -1,7 +1,9 @@
 from automata import CellularAutomaton
 import numpy as np
 import pygame
-from copy import copy, deepcopy
+import pickle
+import resource
+import sys
 
 class Game:
 
@@ -16,8 +18,49 @@ class Game:
         cls.grid = np.array([[None] * cls.GRID_SIZE]*cls.GRID_SIZE)
         cls.render_cells()
         cls.lives = []
-        
     
+    @classmethod
+    def load(cls,filename):
+       cls.grid = np.load("saves/"+filename,allow_pickle=True)
+       cls.WINDOW_SIZE = 1024
+       cls.GRID_SIZE = cls.grid.shape[0]
+       cls.CELL_SIZE = cls.WINDOW_SIZE // cls.GRID_SIZE
+       pygame.init()
+       cls.screen = pygame.display.set_mode((cls.WINDOW_SIZE,cls.WINDOW_SIZE))
+       pygame.display.set_caption("Game of Life")
+       cls.lives = []
+       cls.load_live_cells()
+       cls.display_cells()
+
+    @classmethod
+    def save(cls):
+        name = input("Input file name: ")
+        max_rec = 0x100000
+        resource.setrlimit(resource.RLIMIT_STACK, [0x100 * max_rec, resource.RLIM_INFINITY])
+        sys.setrecursionlimit(max_rec)
+        print("Saving...")
+        np.save("saves/"+name,cls.grid)
+        print("File Saved")
+
+    @classmethod
+    def display_cells(cls):
+        for col in cls.grid:
+            for cell in col:
+                if cell.state == 1:
+                    pygame.draw.rect(cls.screen,(255,0,0),cell.get_body())
+                    pygame.draw.rect(cls.screen,(0,0,0),cell.get_body(),1)
+                else:
+                    pygame.draw.rect(cls.screen,(255,255,255),cell.get_body())
+                    pygame.draw.rect(cls.screen,(0,0,0),cell.get_body(),1)
+
+    @classmethod
+    def load_live_cells(cls):
+        for i in range(cls.grid.shape[0]):
+            for j in range(cls.grid.shape[1]):
+                if cls.grid[i,j].state == 1:
+                  cls.lives.append(cls.grid[i,j])
+
+
     @classmethod
     def render_cells(cls):
         current_position = np.array([0,0])
@@ -73,17 +116,6 @@ class Game:
                 pygame.draw.rect(cls.screen,(255,255,255),evaluated_cells[i].get_body())
                 pygame.draw.rect(cls.screen,(0,0,0),evaluated_cells[i].get_body(),1)
         
-                
-    @classmethod
-    def copy_list(cls,clist):
-        lives = copy(clist)
-        for i in range(len(lives)):
-            lives[i] = copy(lives[i])
-            neighbors = []
-            for neighbor in lives[i].get_neighbors():
-                neighbors.append(copy(neighbor))
-            lives[i].set_neighbors(neighbors)
-        return lives
 
     @classmethod
     def reset_cells(cls):
@@ -108,154 +140,332 @@ class Game:
                         neighbors.append(cls.grid[coordinate[0]][coordinate[1]])
                 cls.grid[i][j].set_neighbors(np.array(neighbors))
 
+    # This method will make a gospel glider gun at the coord, it assumes the grid is big enough for it
     @classmethod
-    def make_gospel_gun(cls,initial_coord):
+    def _make_gospel_gun(cls,initial_coord,fire_right=True):
         x = initial_coord[0]
         y = initial_coord[1]
-        cls.grid[x,y].state = 1
-        cls.lives.append(cls.grid[x,y])
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x,y].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x,y].get_body(),1)
-        cls.lives.append(cls.grid[x+1,y])
-        cls.grid[x+1,y].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+1,y].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+1,y].get_body(),1)
-        cls.lives.append(cls.grid[x+1,y+1])
-        cls.grid[x+1,y+1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+1,y+1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+1,y+1].get_body(),1)
-        cls.lives.append(cls.grid[x,y+1])
-        cls.grid[x,y+1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x,y+1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x,y+1].get_body(),1)
-        cls.lives.append(cls.grid[x+10,y])
-        cls.grid[x+10,y].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+10,y].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+10,y].get_body(),1)
-        cls.lives.append(cls.grid[x+10,y+1])
-        cls.grid[x+10,y+1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+10,y+1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+10,y+1].get_body(),1)
-        cls.lives.append(cls.grid[x+10,y+2])
-        cls.grid[x+10,y+2].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+10,y+2].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+10,y+2].get_body(),1)
-        cls.lives.append(cls.grid[x+11,y-1])
-        cls.grid[x+11,y-1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+11,y-1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+11,y-1].get_body(),1)
-        cls.lives.append(cls.grid[x+11,y+3])
-        cls.grid[x+11,y+3].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+11,y+3].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+11,y+3].get_body(),1)
-        cls.lives.append(cls.grid[x+12,y+4])
-        cls.grid[x+12,y+4].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+12,y+4].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+12,y+4].get_body(),1)
-        cls.lives.append(cls.grid[x+13,y+4])
-        cls.grid[x+13,y+4].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+13,y+4].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+13,y+4].get_body(),1)
-        cls.lives.append(cls.grid[x+12,y-2])
-        cls.grid[x+12,y-2].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+12,y-2].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+12,y-2].get_body(),1)
-        cls.lives.append(cls.grid[x+13,y-2])
-        cls.grid[x+13,y-2].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+13,y-2].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+13,y-2].get_body(),1)
-        cls.lives.append(cls.grid[x+14,y+1])
-        cls.grid[x+14,y+1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+14,y+1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+14,y+1].get_body(),1)
-        cls.lives.append(cls.grid[x+15,y-1])
-        cls.grid[x+15,y-1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+15,y-1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+15,y-1].get_body(),1)
-        cls.lives.append(cls.grid[x+15,y+3])
-        cls.grid[x+15,y+3].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+15,y+3].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+15,y+3].get_body(),1)
-        cls.lives.append(cls.grid[x+16,y+2])
-        cls.grid[x+16,y+2].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+16,y+2].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+16,y+2].get_body(),1)
-        cls.lives.append(cls.grid[x+16,y+1])
-        cls.grid[x+16,y+1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+16,y+1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+16,y+1].get_body(),1)
-        cls.lives.append(cls.grid[x+16,y])
-        cls.grid[x+16,y].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+16,y].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+16,y].get_body(),1)
-        cls.lives.append(cls.grid[x+17,y+1])
-        cls.grid[x+17,y+1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+17,y+1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+17,y+1].get_body(),1)
-        cls.lives.append(cls.grid[x+20,y])
-        cls.grid[x+20,y].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+20,y].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+20,y].get_body(),1)
-        cls.lives.append(cls.grid[x+20,y-1])
-        cls.grid[x+20,y-1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+20,y-1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+20,y-1].get_body(),1)
-        cls.lives.append(cls.grid[x+20,y-2])
-        cls.grid[x+20,y-2].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+20,y-2].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+20,y-2].get_body(),1)
-        cls.lives.append(cls.grid[x+21,y])
-        cls.grid[x+21,y].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+21,y].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+21,y].get_body(),1)
-        cls.lives.append(cls.grid[x+21,y-1])
-        cls.grid[x+21,y-1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+21,y-1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+21,y-1].get_body(),1)
-        cls.lives.append(cls.grid[x+21,y-2])
-        cls.grid[x+21,y-2].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+21,y-2].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+21,y-2].get_body(),1)
-        cls.lives.append(cls.grid[x+22,y-2])
-        cls.grid[x+22,y-3].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+22,y-3].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+22,y-3].get_body(),1)
-        cls.lives.append(cls.grid[x+22,y+1])
-        cls.grid[x+22,y+1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+22,y+1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+22,y+1].get_body(),1)
-        cls.lives.append(cls.grid[x+24,y+1])
-        cls.grid[x+24,y+1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y+1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y+1].get_body(),1)
-        cls.lives.append(cls.grid[x+24,y+2])
-        cls.grid[x+24,y+2].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y+2].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y+2].get_body(),1)
-        cls.lives.append(cls.grid[x+24,y-3])
-        cls.grid[x+24,y-3].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y-3].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y-3].get_body(),1)
-        cls.lives.append(cls.grid[x+24,y-4])
-        cls.grid[x+24,y-4].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y-4].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y-4].get_body(),1)
-        cls.lives.append(cls.grid[x+34,y-2])
-        cls.grid[x+34,y-2].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+34,y-2].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+34,y-2].get_body(),1)
-        cls.lives.append(cls.grid[x+34,y-1])
-        cls.grid[x+34,y-1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+34,y-1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+34,y-1].get_body(),1)
-        cls.lives.append(cls.grid[x+35,y-1])
-        cls.grid[x+35,y-1].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+35,y-1].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+35,y-1].get_body(),1)
-        cls.lives.append(cls.grid[x+35,y-2])
-        cls.grid[x+35,y-2].state = 1
-        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+35,y-2].get_body())
-        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+35,y-2].get_body(),1)
+        x_change = 0
+        y_change = 0
+        cls.grid[x,y+ y_change].state = 1
+        cls.lives.append(cls.grid[x,y+ y_change])
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y + y_change])
+        cls.grid[x + x_change,y + y_change].state = 1
+        x_change = 1
+        y_change = 0
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 1
+        y_change = 1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x,y+ y_change])
+        cls.grid[x,y+ y_change].state = 1
+        x_change = 0
+        y_change = 1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 10
+        y_change = 0
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 10
+        y_change = 1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 10
+        y_change = 2
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 11
+        y_change = -1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 11
+        y_change = 3
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 12
+        y_change = 4
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 13
+        y_change = 4
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 12
+        y_change = -2
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 13
+        y_change = -2
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 14
+        y_change = 1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 15
+        y_change = -1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 15
+        y_change = 3
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 16
+        y_change = 2
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 16
+        y_change = 1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 16
+        y_change = 0
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 17
+        y_change = 1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 20
+        y_change = 0
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 20
+        y_change = -1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 20
+        y_change = -2
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 21
+        y_change = 0
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 21
+        y_change = -1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 21
+        y_change = -2
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 22
+        y_change = -3
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 22
+        y_change = 1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 24
+        y_change = 1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 24
+        y_change = 2
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 24
+        y_change = -3
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 24
+        y_change = -4
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 34
+        y_change = -2
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 34
+        y_change = -1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 35
+        y_change = -1
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
+        cls.lives.append(cls.grid[x + x_change,y+ y_change])
+        cls.grid[x + x_change,y+ y_change].state = 1
+        x_change = 35
+        y_change = -2
+        if not fire_right:
+            x_change = -x_change
+            y_change = y_change
+        pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x + x_change,y+ y_change].get_body())
+        pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x + x_change,y+ y_change].get_body(),1)
         
         
 
@@ -265,5 +475,10 @@ class Game:
     # It assumes the grid is at least 128x128
     @classmethod
     def setup_NOT(cls):
-        cls.make_gospel_gun((6,6))
+        cls._make_gospel_gun((1,30))
+        cls._make_gospel_gun((127,28),fire_right=False)
+        cls._make_gospel_gun((45,4))
+        cls._make_gospel_gun((5,4))
+
+
 
