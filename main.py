@@ -11,7 +11,7 @@ from pygame.locals import QUIT,MOUSEBUTTONDOWN, KEYDOWN
 # Enter: play the game continuously or pause
 
 if __name__ == "__main__":
-    print("\nWelcome the the Game of Life (Golly) Simulator\n")
+    print("\nWelcome to the Game of Life Simulator\n")
     while(True):
         command = input("Type a command or 'help' to see a list of commands: ")
         if(command == "help"):

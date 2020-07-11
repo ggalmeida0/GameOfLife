@@ -3,7 +3,6 @@ import numpy as np
 import pygame
 from copy import copy, deepcopy
 
-
 class Game:
 
     @classmethod
@@ -16,6 +15,7 @@ class Game:
         pygame.display.set_caption("Game of Life")
         cls.grid = np.array([[None] * cls.GRID_SIZE]*cls.GRID_SIZE)
         cls.render_cells()
+        cls.lives = []
         
     
     @classmethod
@@ -41,43 +41,50 @@ class Game:
             pygame.draw.rect(cls.screen,(255,0,0),clicked_cell.get_body())
             pygame.draw.rect(cls.screen,(0,0,0),clicked_cell.get_body(),1)
             clicked_cell.state = 1
+            cls.lives.append(clicked_cell)
         elif clicked_cell.state == 1:
             pygame.draw.rect(cls.screen,(255,255,255),clicked_cell.get_body())
             pygame.draw.rect(cls.screen,(0,0,0),clicked_cell.get_body(),1)
             clicked_cell.state = 0
+            cls.lives.remove(clicked_cell)
 
     @classmethod
     def step(cls):
-        old_configuration = cls.copy_configuration()
-        for i in range(old_configuration.shape[0]):
-            for j in range(old_configuration[i].shape[0]):
-                alive_neighbors = 0
-                current_cell = cls.grid[i][j]
-                for neighbor in old_configuration[i][j].get_neighbors():
-                    if neighbor and neighbor.state == 1:
-                        alive_neighbors += 1
-                # Rules:
-                # 1. If the cell is alive and there are 2 or 3 alive neighbors it lives to the next generation
-                if(current_cell.state == 1 and (alive_neighbors == 2 or alive_neighbors == 3)):
-                    continue
-                #2. If a dead cell has exactly 3 alive neighbors it will become a live cell as if by reproduction
-                elif (current_cell.state == 0 and alive_neighbors == 3):    
-                    current_cell.state = 1
-                    pygame.draw.rect(cls.screen,(255,0,0),current_cell.get_body())
-                    pygame.draw.rect(cls.screen,(0,0,0),current_cell.get_body(),1)
-                # 3. Any live cell with fewer than two live neighbours dies, as if by underpopulation
-                elif(current_cell.state == 1 and alive_neighbors < 2):
-                    current_cell.state = 0
-                    pygame.draw.rect(cls.screen,(255,255,255),current_cell.get_body())
-                    pygame.draw.rect(cls.screen,(0,0,0),current_cell.get_body(),1)
-                # 4. Any live cell with more than three live neighbours dies, as if by overpopulation.
-                elif(current_cell.state == 1 and alive_neighbors > 3):
-                    current_cell.state = 0
-                    pygame.draw.rect(cls.screen,(255,255,255),current_cell.get_body())
-                    pygame.draw.rect(cls.screen,(0,0,0),current_cell.get_body(),1)
-        cls.update_neighbors()
+        # First put live cells and its neighbors inside a list for evaluation
+        evaluated_cells = cls.lives.copy()
+        for i in range(len(cls.lives)):
+            for j in range(len(cls.lives[i].get_neighbors())):
+                if cls.lives[i].get_neighbors()[j] not in evaluated_cells:
+                    evaluated_cells.append(cls.lives[i].get_neighbors()[j])
+        for cell in evaluated_cells:
+            if cell:
+                cell.step()
+        for i in range(len(evaluated_cells)):
+            if evaluated_cells[i] and evaluated_cells[i].will_live:
+                evaluated_cells[i].state = 1
+                if evaluated_cells[i] not in cls. lives:
+                    cls.lives.append(evaluated_cells[i])
+                pygame.draw.rect(cls.screen,(255,0,0),evaluated_cells[i].get_body())
+                pygame.draw.rect(cls.screen,(0,0,0),evaluated_cells[i].get_body(),1)
+            elif evaluated_cells[i]:
+                evaluated_cells[i].state = 0
+                if evaluated_cells[i] in cls.lives:
+                    cls.lives.remove(evaluated_cells[i])
+                pygame.draw.rect(cls.screen,(255,255,255),evaluated_cells[i].get_body())
+                pygame.draw.rect(cls.screen,(0,0,0),evaluated_cells[i].get_body(),1)
+        
                 
- 
+    @classmethod
+    def copy_list(cls,clist):
+        lives = copy(clist)
+        for i in range(len(lives)):
+            lives[i] = copy(lives[i])
+            neighbors = []
+            for neighbor in lives[i].get_neighbors():
+                neighbors.append(copy(neighbor))
+            lives[i].set_neighbors(neighbors)
+        return lives
+
     @classmethod
     def reset_cells(cls):
         for i in range(cls.grid.shape[0]):
@@ -85,16 +92,6 @@ class Game:
                 cls.grid[i][j].state = 0
                 pygame.draw.rect(cls.screen,(255,255,255),cls.grid[i][j].get_body())
                 pygame.draw.rect(cls.screen,(0,0,0),cls.grid[i][j].get_body(),1)
-
-    @classmethod
-    def copy_configuration(cls):
-        config_copy = np.copy(cls.grid)
-        for i in range(config_copy.shape[0]):
-            for j in range(config_copy[i].shape[0]):
-                config_copy[i][j] = copy(config_copy[i][j])
-                for n in range(len(config_copy[i][j].get_neighbors())):
-                    config_copy[i][j].get_neighbors()[n] = copy(config_copy[i][j].get_neighbors()[n])
-        return config_copy
 
     @classmethod
     def update_neighbors(cls):
@@ -116,112 +113,146 @@ class Game:
         x = initial_coord[0]
         y = initial_coord[1]
         cls.grid[x,y].state = 1
+        cls.lives.append(cls.grid[x,y])
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x,y].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x,y].get_body(),1)
+        cls.lives.append(cls.grid[x+1,y])
         cls.grid[x+1,y].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+1,y].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+1,y].get_body(),1)
+        cls.lives.append(cls.grid[x+1,y+1])
         cls.grid[x+1,y+1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+1,y+1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+1,y+1].get_body(),1)
+        cls.lives.append(cls.grid[x,y+1])
         cls.grid[x,y+1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x,y+1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x,y+1].get_body(),1)
+        cls.lives.append(cls.grid[x+10,y])
         cls.grid[x+10,y].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+10,y].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+10,y].get_body(),1)
+        cls.lives.append(cls.grid[x+10,y+1])
         cls.grid[x+10,y+1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+10,y+1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+10,y+1].get_body(),1)
+        cls.lives.append(cls.grid[x+10,y+2])
         cls.grid[x+10,y+2].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+10,y+2].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+10,y+2].get_body(),1)
+        cls.lives.append(cls.grid[x+11,y-1])
         cls.grid[x+11,y-1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+11,y-1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+11,y-1].get_body(),1)
+        cls.lives.append(cls.grid[x+11,y+3])
         cls.grid[x+11,y+3].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+11,y+3].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+11,y+3].get_body(),1)
+        cls.lives.append(cls.grid[x+12,y+4])
         cls.grid[x+12,y+4].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+12,y+4].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+12,y+4].get_body(),1)
+        cls.lives.append(cls.grid[x+13,y+4])
         cls.grid[x+13,y+4].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+13,y+4].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+13,y+4].get_body(),1)
-
+        cls.lives.append(cls.grid[x+12,y-2])
         cls.grid[x+12,y-2].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+12,y-2].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+12,y-2].get_body(),1)
+        cls.lives.append(cls.grid[x+13,y-2])
         cls.grid[x+13,y-2].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+13,y-2].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+13,y-2].get_body(),1)
-
+        cls.lives.append(cls.grid[x+14,y+1])
         cls.grid[x+14,y+1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+14,y+1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+14,y+1].get_body(),1)
+        cls.lives.append(cls.grid[x+15,y-1])
         cls.grid[x+15,y-1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+15,y-1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+15,y-1].get_body(),1)
+        cls.lives.append(cls.grid[x+15,y+3])
         cls.grid[x+15,y+3].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+15,y+3].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+15,y+3].get_body(),1)
+        cls.lives.append(cls.grid[x+16,y+2])
         cls.grid[x+16,y+2].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+16,y+2].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+16,y+2].get_body(),1)
+        cls.lives.append(cls.grid[x+16,y+1])
         cls.grid[x+16,y+1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+16,y+1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+16,y+1].get_body(),1)
+        cls.lives.append(cls.grid[x+16,y])
         cls.grid[x+16,y].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+16,y].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+16,y].get_body(),1)
+        cls.lives.append(cls.grid[x+17,y+1])
         cls.grid[x+17,y+1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+17,y+1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+17,y+1].get_body(),1)
+        cls.lives.append(cls.grid[x+20,y])
         cls.grid[x+20,y].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+20,y].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+20,y].get_body(),1)
+        cls.lives.append(cls.grid[x+20,y-1])
         cls.grid[x+20,y-1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+20,y-1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+20,y-1].get_body(),1)
+        cls.lives.append(cls.grid[x+20,y-2])
         cls.grid[x+20,y-2].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+20,y-2].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+20,y-2].get_body(),1)
+        cls.lives.append(cls.grid[x+21,y])
         cls.grid[x+21,y].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+21,y].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+21,y].get_body(),1)
+        cls.lives.append(cls.grid[x+21,y-1])
         cls.grid[x+21,y-1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+21,y-1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+21,y-1].get_body(),1)
+        cls.lives.append(cls.grid[x+21,y-2])
         cls.grid[x+21,y-2].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+21,y-2].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+21,y-2].get_body(),1)
+        cls.lives.append(cls.grid[x+22,y-2])
         cls.grid[x+22,y-3].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+22,y-3].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+22,y-3].get_body(),1)
+        cls.lives.append(cls.grid[x+22,y+1])
         cls.grid[x+22,y+1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+22,y+1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+22,y+1].get_body(),1)
+        cls.lives.append(cls.grid[x+24,y+1])
         cls.grid[x+24,y+1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y+1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y+1].get_body(),1)
+        cls.lives.append(cls.grid[x+24,y+2])
         cls.grid[x+24,y+2].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y+2].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y+2].get_body(),1)
+        cls.lives.append(cls.grid[x+24,y-3])
         cls.grid[x+24,y-3].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y-3].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y-3].get_body(),1)
+        cls.lives.append(cls.grid[x+24,y-4])
         cls.grid[x+24,y-4].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+24,y-4].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+24,y-4].get_body(),1)
+        cls.lives.append(cls.grid[x+34,y-2])
         cls.grid[x+34,y-2].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+34,y-2].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+34,y-2].get_body(),1)
+        cls.lives.append(cls.grid[x+34,y-1])
         cls.grid[x+34,y-1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+34,y-1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+34,y-1].get_body(),1)
+        cls.lives.append(cls.grid[x+35,y-1])
         cls.grid[x+35,y-1].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+35,y-1].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+35,y-1].get_body(),1)
+        cls.lives.append(cls.grid[x+35,y-2])
         cls.grid[x+35,y-2].state = 1
         pygame.draw.rect(cls.screen,(255,0,0),cls.grid[x+35,y-2].get_body())
         pygame.draw.rect(cls.screen,(0,0,0),cls.grid[x+35,y-2].get_body(),1)
