@@ -10,3 +10,6 @@
 - Right click: step one generation
 - Space bar: reset the board
 - Enter: play the game continuously, press again to pause
+
+# How to run:
+`python3 main.py`
